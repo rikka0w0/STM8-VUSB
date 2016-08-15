@@ -5,8 +5,8 @@
 
 extern void usb_tx(void);
 
-uint8_t usb_ready;
-uint8_t usb_ready_reg;
+//uint8_t usb_ready;
+//uint8_t usb_ready_reg;
 uint8_t data_sync;
 uint8_t usb_rx_buffer[16];
 
@@ -52,8 +52,8 @@ void usb_init(void)
 	usb.device_address = 0;
 	usb.setup_address  = 0;
 	usb.tx_is_all = TRUE;
-	usb_ready = 0;
-	usb_ready_reg = 0;
+	//usb_ready = 0;
+	//usb_ready_reg = 0;
 }
 
 void usb_send_nack(void)
@@ -171,8 +171,8 @@ void usb_rx_ok(void)
 				{
 					usb.device_address=usb.setup_address;
 				}
-				if(usb_ready_reg==1)			
-					usb_ready=1;
+				//if(usb_ready_reg==1)			
+					//usb_ready=1;
 				if (usb.event == USB_EVENT_READY_DATA_IN)
 				{
 					usb_send_answer();
@@ -367,15 +367,10 @@ void usb_send_stall(void)
 	usb.event = USB_EVENT_READY_DATA_IN;
 }
 
-uint8_t counter_a = 0;
-uint8_t counter_b = 0;
-uint8_t counter_all = 0;
-
-uint8_t tx_counter = 0;
-
 
 void usb_process(void)
 {
+
 	if (usb.event == USB_EVENT_RECEIVE_SETUP_DATA)
 	{
 		switch (usb.rx_buffer[2])
@@ -385,14 +380,19 @@ void usb_process(void)
 				if (usb.rx_buffer[3] == USB_REQUEST_GET_DESCRIPTOR){ //0x06
 						switch (usb.rx_buffer[5])
 						{
-							case (1):	// device descriptor
+							case (TYPE_DEVICE_DESCRIPTOR):
 							{
 								USB_Send_Data(usb_device_descriptor, usb.rx_buffer[8], 1);
 								break;
 							}
-							case (2):	// configuration descriptor
+							case (TYPE_CONFIG_DESCRIPTOR):
 							{
 								USB_Send_Data(usb_configuration_descriptor,usb.rx_buffer[8], 1);
+								break;
+							}
+							case (TYPE_STRING_DESCRIPTOR):
+							{
+								USB_Send_Data(USB_String_Descriptors[usb.rx_buffer[4]], USB_String_Descriptors_Length[usb.rx_buffer[4]], 1);
 								break;
 							}
 						}
@@ -408,7 +408,7 @@ void usb_process(void)
 					case(USB_REQUEST_GET_DESCRIPTOR):
 					{
 						USB_Send_Data(usb_report_descriptor, SIZE_REPORT_DESCRIPTOR, 1);
-						usb_ready_reg=1;
+						//usb_ready_reg=1;
 						break;
 					}
 					default: 
