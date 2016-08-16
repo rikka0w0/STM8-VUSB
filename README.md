@@ -34,3 +34,4 @@ https://github.com/wlianmin/stm8_usb
 
 Background and references:
 http://www.usbmadesimple.co.uk/ums_3.htm
+http://www.beyondlogic.org/usbnutshell/usb4.shtml#Interrupt
