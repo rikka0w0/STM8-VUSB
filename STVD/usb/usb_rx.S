@@ -1,4 +1,4 @@
-	xref	_usb_rx_count, _usb_rx_buffer, _usb_rx_ok, _usb_init
+	xref	_usb_rx_count, _usb_rx_buffer, _usb_device_address, _usb_EndPoint, _usb_Transaction, _usb_rx_ok, _usb_IN
 
 	xdef	_usb_rx
 
@@ -98,8 +98,55 @@ L_End_Rx:
 	pop		a
 	ld		_usb_rx_count,a
 
-	call	_usb_rx_ok
 
+	;;Start processing received packet data
+	ldw	x, #_usb_rx_buffer ;load the address of the first element of usb_rx_buffer into x
+	ld a, ($1,x)  ;a = PID
+	cp a, #$2D		;Check if PID == USB_PID_SETUP(0x2D)
+	jreq L_PID_SETUP
+	
+	cp a, #$69		;Check if PID == USB_PID_IN(0x69)
+	jreq L_PID_IN
+	
+	cp a, #$D2		;Check if PID == USB_ACK(0xD2)
+	jreq continue
+	
+	cp a, #$5A		;Check if PID == USB_NACK(0x5A)
+	jreq continue	
+	
+	call	_usb_rx_ok
+	jra continue
+	
+	
+L_PID_SETUP:
+	ld	a, ($2,x)
+	rlc a
+	srl a												;now a = address, c = last bit of endPoint
+  xor a, _usb_device_address	;Compare the address of received token with device address
+	jrne continue								;Device address mismatch, ignore
+	ld a, ($3,x)
+	rlc a
+	and a, #$0F
+	ld _usb_EndPoint, a
+	mov _usb_Transaction, #$2D
+	jra continue								;Save the endpoint, set transaction to Setup, done
+	
+L_PID_IN:
+	ld	a, ($2,x)
+	rlc a
+	srl a												;now a = address, c = last bit of endPoint
+  xor a, _usb_device_address	;Compare the address of received token with device address
+	jrne continue								;Device address mismatch, ignore
+	ld a, ($3,x)
+	rlc a
+	and a, #$0F
+	ld _usb_EndPoint, a
+	mov _usb_Transaction, #$69
+	call _usb_IN
+	jra continue								;Save the endpoint, set transaction to Setup, done
+
+	
+continue:
 	clr		20495					; PD->ODR ???
 
 	mov		21077,#251 				; 复位定时器中断标志

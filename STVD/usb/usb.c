@@ -5,19 +5,18 @@
 
 extern void usb_tx(void);
 
-//uint8_t usb_ready;
-//uint8_t usb_ready_reg;
 uint8_t data_sync;
 uint8_t usb_rx_buffer[16];
 
+uint8_t usb_Transaction;
+uint8_t usb_EndPoint;
 
 uint8_t * usb_tx_buffer_pointer;
 
 uint8_t usb_tx_count;
 uint8_t usb_rx_count;
 
-
-
+volatile uint8_t usb_device_address;
 
 
 
@@ -31,29 +30,22 @@ struct usb_type
 {
 	volatile uint8_t state;
 	volatile uint8_t event;
-	volatile uint8_t device_address;
 
-	uint8_t endpoint_number;
 	uint8_t setup_address;
-	uint8_t setup_endpoint;
 
 	uint8_t rx_buffer[16];
 	uint8_t rx_lenght;
 
 	uint8_t tx_buffer[16];
 	uint8_t tx_lenght;
-	uint8_t tx_is_all;
 } usb;
 
 void usb_init(void)
 {
 	usb.state = USB_STATE_IDLE;
 	usb.event = USB_EVENT_NO;
-	usb.device_address = 0;
+	usb_device_address = 0;
 	usb.setup_address  = 0;
-	usb.tx_is_all = TRUE;
-	//usb_ready = 0;
-	//usb_ready_reg = 0;
 }
 
 void usb_send_nack(void)
@@ -147,51 +139,38 @@ uint8_t count = 0;
 		usb.rx_buffer[index] = usb_rx_buffer[index];
 }
 
+void usb_IN(void){
+	if(usb.setup_address!=0)
+		usb_device_address=usb.setup_address;
+
+
+	if (usb.event == USB_EVENT_READY_DATA_IN)
+	{
+		usb_send_answer();
+		usb.state = USB_STATE_IN;
+		usb.event = USB_EVENT_WAIT_DATA_IN;
+	}
+	else
+	{
+		usb_send_nack();
+	}
+}
+
 void usb_rx_ok(void)
 {
 	switch (usb_rx_buffer[1])
-	{
-		case (USB_PID_SETUP):
-		{
-			usb.state = USB_STATE_SETUP;
-			break;
-		}
-		
+	{	
 		case (USB_PID_OUT):
 		{
 			usb.state = USB_STATE_OUT;
 			break;
 		}
 		
-		case (USB_PID_IN):
-		{
-			if((usb_rx_buffer[2]&0x7F)==usb.device_address)
-			{
-				if(usb.setup_address!=0)
-				{
-					usb.device_address=usb.setup_address;
-				}
-				//if(usb_ready_reg==1)			
-					//usb_ready=1;
-				if (usb.event == USB_EVENT_READY_DATA_IN)
-				{
-					usb_send_answer();
-					usb.state = USB_STATE_IN;
-					usb.event = USB_EVENT_WAIT_DATA_IN;
-				}
-				else
-				{
-					usb_send_nack();
-				}
-			}
-			
-			break;
-		}
-		
 		case (USB_PID_DATA0):
 		{
-			if (usb.state == USB_STATE_SETUP)
+			if (usb_Transaction == USB_PID_SETUP)
 			{
+				usb_Transaction = USB_STATE_IDLE;
 				usb_send_ack();
 				usb_copy_rx_buffer();
 				usb.event = USB_EVENT_RECEIVE_SETUP_DATA;
@@ -214,17 +193,7 @@ void usb_rx_ok(void)
 
 			break;
 		}
-		
-		case (USB_PID_ACK):
-		{
-			break;
-		}
-		
-		case (USB_PID_NACK):
-		{
-			break;
-		}
-		
+				
 		default:
 		{
 			usb.state = USB_STATE_IDLE;
@@ -312,7 +281,6 @@ void USB_Send_Data(uint8_t * buffer, uint8_t length, uint8_t mode)
 		// wait for transmission and then start the next
 		while (usb.event == USB_EVENT_READY_DATA_IN)
 		{
-			//if ((usb.state != USB_STATE_IN)&&(usb.state != USB_STATE_SETUP))
 			if (usb.event == USB_EVENT_WAIT_DATA_IN)
 				break;
 		}
