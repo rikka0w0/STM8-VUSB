@@ -2,11 +2,9 @@
 
 uint8_t data_buffer[4];
 extern uint8_t usb_ready;
-
+//extern void usb_send_nack(void);
 void main(void)
 {
-	char x=10;
-	char y=10;
 	
 	CLK->CKDIVR = 0;
 	disableInterrupts();
@@ -18,6 +16,7 @@ void main(void)
 
 	while(1)
 	{
+		//usb_send_nack();
 		usb_process();
 	}
 

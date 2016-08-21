@@ -4,7 +4,16 @@
 extern uint8_t usb_tx_count;
 
 extern uint8_t usb_tx_buffer[16];
+// bit 0 - Not Idle
+// bit 1 - Is control transfer?
+// bit 2 - Has data
+// bit 3 - Direction(1 - out, 0 - in)
+#define USB_TRANSFER_IDLE 0x00
+#define USB_TRANSFER_CONTROL_NODATA 0x03
+#define USB_TRANSFER_CONTROL_IN 0x07
+#define USB_TRANSFER_CONTROL_OUT 0x0F
 
+#define USB_TRANSACTION_IDLE 0 
 
 enum usb_events_list
 {

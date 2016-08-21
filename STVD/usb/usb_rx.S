@@ -1,4 +1,4 @@
-	xref	_usb_rx_count, _usb_rx_buffer, _usb_device_address, _usb_EndPoint, _usb_Transaction, _usb_rx_ok, _usb_IN
+	xref	_usb_rx_count, _usb_rx_buffer, _usb_device_address, _usb_EndPoint, _usb_Transaction, _usb_rx_ok, _usb_IN, _usb_OUT
 
 	xdef	_usb_rx
 
@@ -108,6 +108,9 @@ L_End_Rx:
 	cp a, #$69		;Check if PID == USB_PID_IN(0x69)
 	jreq L_PID_IN
 	
+	cp a, #$E1		;Check if PID == USB_PID_OUT(0xE1)
+	jreq L_PID_OUT
+	
 	cp a, #$D2		;Check if PID == USB_ACK(0xD2)
 	jreq continue
 	
@@ -122,7 +125,7 @@ L_PID_SETUP:
 	ld	a, ($2,x)
 	rlc a
 	srl a												;now a = address, c = last bit of endPoint
-  xor a, _usb_device_address	;Compare the address of received token with device address
+  cp a, _usb_device_address	;Compare the address of received token with device address
 	jrne continue								;Device address mismatch, ignore
 	ld a, ($3,x)
 	rlc a
@@ -145,7 +148,20 @@ L_PID_IN:
 	call _usb_IN
 	jra continue								;Save the endpoint, set transaction to Setup, done
 
-	
+L_PID_OUT:
+	ld	a, ($2,x)
+	rlc a
+	srl a												;now a = address, c = last bit of endPoint
+  xor a, _usb_device_address	;Compare the address of received token with device address
+	jrne continue								;Device address mismatch, ignore
+	ld a, ($3,x)
+	rlc a
+	and a, #$0F
+	ld _usb_EndPoint, a
+	mov _usb_Transaction, #$E1
+	call _usb_OUT
+	jra continue
+
 continue:
 	clr		20495					; PD->ODR ???
 

@@ -156,19 +156,39 @@ L_Tx_End:
 	nop
 	nop
 
-	clr		20490
+	clr		$500A
+	
+	nop
+	nop
+	nop
+	nop
+	
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+
+
+	
+	bset $500A, #6 
+	
+	bres $500E, #6	;CR2 PC6 No interrupt	
+	bres $500E, #7	;CR2 PC7 No interrupt			
+	bres $500D, #6  ;CR1 PC5 Floating
+	bres $500D, #7  ;CR1 PC7 Floating
+	bres $500C, #6  ;DDR PC6 In
+	bres $500C, #7  ;DDR PC7 In
 
 	ret
 
-	nop
-	nop
-	nop
-	nop
 
-;
-;
-;
-	nop
+
+
 
 L_Bit4_Idle:
 	nop

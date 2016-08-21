@@ -1,3 +1,5 @@
+[WorkState_v1-Edit.Breakpoints]
+Break0=TypeFile, usb\usb.c, 117, 0, 0, 1,
 
 [WorkState_v1_2]
 ptn_Child1=DockState
@@ -44,7 +46,7 @@ ptn_Child33=Bar-32
 
 [WorkState_v1_2.DockState.Bar-0]
 BarID=59419
-Bars=24
+Bars=40
 Bar#0=0
 Bar#1=59647
 Bar#2=0
@@ -69,6 +71,22 @@ Bar#20=0
 Bar#21=0
 Bar#22=0
 Bar#23=0
+Bar#24=0
+Bar#25=0
+Bar#26=0
+Bar#27=0
+Bar#28=0
+Bar#29=0
+Bar#30=0
+Bar#31=0
+Bar#32=0
+Bar#33=0
+Bar#34=0
+Bar#35=0
+Bar#36=0
+Bar#37=0
+Bar#38=0
+Bar#39=0
 Style=0
 ExStyle=0
 PrevFloating=False
@@ -331,6 +349,7 @@ ResourceID=0
 
 [WorkState_v1_2.DockState.Bar-8]
 BarID=59647
+XPos=0
 MRUWidth=292
 Docking=True
 MRUDockID=59419
@@ -370,8 +389,9 @@ Buttons=BAAAAAAIAACAAAAAAIAADAAAAAAIAAEAAAAAAIAAFAAAAAAIAAGAAAAAAIAAHAAAAAAIAAIA
 [WorkState_v1_2.DockState.Bar-9]
 BarID=59392
 YPos=28
+MRUWidth=131
 Docking=True
-MRUDockID=0
+MRUDockID=59419
 MRUDockLeftPos=8
 MRUDockTopPos=31
 MRUDockRightPos=156
@@ -387,12 +407,12 @@ AutoHide=False
 AutoHidePinned=False
 LastAlignedDocking=0
 PctWidth=199355
-MRUFloatCX=0
-MRUFloatCY=0
+MRUFloatCX=148
+MRUFloatCY=30
 MRUHorzDockCX=148
 MRUHorzDockCY=30
-MRUVertDockCX=0
-MRUVertDockCY=0
+MRUVertDockCX=31
+MRUVertDockCY=143
 MRUDockingState=0
 DockingStyle=61440
 TypeID=14946
@@ -505,7 +525,7 @@ MDIChild=False
 AutoHide=False
 AutoHidePinned=False
 LastAlignedDocking=0
-PctWidth=124184
+PctWidth=204335
 MRUFloatCX=356
 MRUFloatCY=30
 MRUHorzDockCX=356
@@ -526,7 +546,7 @@ Buttons=KAAIAAAACAEGAAMAAIAAAACAEGAAAAAAAAAAAABBAIAAAAAACBAIAAAAAADBAIAAAAAAAAAA
 
 [WorkState_v1_2.DockState.Bar-13]
 BarID=59399
-XPos=0
+XPos=1
 YPos=58
 MRUWidth=385
 Docking=True
@@ -545,13 +565,13 @@ MDIChild=False
 AutoHide=False
 AutoHidePinned=False
 LastAlignedDocking=0
-PctWidth=696126
+PctWidth=500000
 MRUFloatCX=402
 MRUFloatCY=30
 MRUHorzDockCX=402
 MRUHorzDockCY=30
 MRUVertDockCX=31
-MRUVertDockCY=372
+MRUVertDockCY=387
 MRUDockingState=0
 DockingStyle=61440
 TypeID=14946
@@ -585,7 +605,7 @@ MDIChild=False
 AutoHide=False
 AutoHidePinned=False
 LastAlignedDocking=0
-PctWidth=179689
+PctWidth=295664
 MRUFloatCX=63
 MRUFloatCY=30
 MRUHorzDockCX=40
@@ -1251,6 +1271,8 @@ ptn_Child1=Document-0
 ptn_Child2=Document-1
 ptn_Child3=Document-2
 ptn_Child4=Document-3
+ptn_Child5=Document-4
+ptn_Child6=Document-5
 
 [WorkState_v1_2.Frames.ChildFrames.Document-0]
 ptn_Child1=ViewFrame-0
@@ -1293,5 +1315,27 @@ DocPathName=usb\usb_rx.s
 DocumentString=
 DocTemplateIndex=0
 WindowPlacement=MCAAAAAAAAAAAAAABAAAAAAAPPPPPPPPPPPPPPPPIPPPPPPPBOPPPPPPCIAAAAAACIAAAAAAFOEAAAAAFNBAAAAA
+IsActiveChildFrame=False
+IsFrameVisible=True
+
+[WorkState_v1_2.Frames.ChildFrames.Document-4]
+ptn_Child1=ViewFrame-0
+
+[WorkState_v1_2.Frames.ChildFrames.Document-4.ViewFrame-0]
+DocPathName=usb\usb_tx.s
+DocumentString=
+DocTemplateIndex=0
+WindowPlacement=MCAAAAAAAAAAAAAABAAAAAAAPPPPPPPPPPPPPPPPIPPPPPPPBOPPPPPPIGAAAAAAIGAAAAAALMEAAAAALLBAAAAA
+IsActiveChildFrame=False
+IsFrameVisible=True
+
+[WorkState_v1_2.Frames.ChildFrames.Document-5]
+ptn_Child1=ViewFrame-0
+
+[WorkState_v1_2.Frames.ChildFrames.Document-5.ViewFrame-0]
+DocPathName=libraries\inc\stm8s.h
+DocumentString=
+DocTemplateIndex=0
+WindowPlacement=MCAAAAAAAAAAAAAABAAAAAAAPPPPPPPPPPPPPPPPIPPPPPPPBOPPPPPPMJAAAAAAMJAAAAAAPPEAAAAAPOBAAAAA
 IsActiveChildFrame=False
 IsFrameVisible=True

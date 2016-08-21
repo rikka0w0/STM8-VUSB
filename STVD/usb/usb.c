@@ -1,27 +1,28 @@
 #include "main.h"
 #include "usb_desc.h"
 
-
+uint8_t usb_rx_buffer[16];
 
 extern void usb_tx(void);
 
 uint8_t data_sync;
-uint8_t usb_rx_buffer[16];
+
+
+
+
 
 uint8_t usb_Transaction;
 uint8_t usb_EndPoint;
+uint8_t usb_Transfer;
+
+
 
 uint8_t * usb_tx_buffer_pointer;
 
 uint8_t usb_tx_count;
 uint8_t usb_rx_count;
 
-volatile uint8_t usb_device_address;
-
-
-
-
-
+uint8_t usb_device_address;
 
 
 
@@ -34,17 +35,19 @@ struct usb_type
 	uint8_t setup_address;
 
 	uint8_t rx_buffer[16];
-	uint8_t rx_lenght;
 
 	uint8_t tx_buffer[16];
 	uint8_t tx_lenght;
 } usb;
 
+
+
 void usb_init(void)
 {
+	usb_device_address = 0;
+	usb_Transfer = USB_TRANSFER_IDLE;
 	usb.state = USB_STATE_IDLE;
 	usb.event = USB_EVENT_NO;
-	usb_device_address = 0;
 	usb.setup_address  = 0;
 }
 
@@ -64,46 +67,25 @@ void usb_send_nack(void)
 	usb_tx_buffer_pointer = &data[0];
 
 	usb_tx();
-
-	nop();
-	nop();
-	nop();
-	nop();
-	nop();
-
-	GPIOC->CR2 = 0x00;
-	GPIOC->CR1 = 0x00;
-	GPIOC->DDR = 0x3F;
 }
 
 @inline void usb_send_ack(void)
 {
 	uint8_t data[2];
-
-	GPIOC->ODR = 0x40;
-	GPIOC->CR1 = 0xFF;
-	GPIOC->CR2 = 0xFF;
-	GPIOC->DDR = 0xFF;
 	
+	GPIOC->ODR = 0x40; //PC7 = 0, PC6 = 1
+	GPIOC->CR1 = 0xFF; //P buffer
+	GPIOC->CR2 = 0xFF; //Output speed 10MHz
+	GPIOC->DDR = 0xFF; //PC6, PC7 Output
+
 	data[0] = 0x80;
 	data[1] = USB_PID_ACK;
 
 	usb_tx_count = 2;
-	usb_tx_buffer_pointer = &data[0];
+	usb_tx_buffer_pointer =  data;
 
 	
 	usb_tx();
-	
-	nop();
-	nop();
-	nop();
-	nop();
-	nop();
-
-	GPIOC->CR2 = 0x00;
-	GPIOC->CR1 = 0x00;
-	GPIOC->DDR = 0x7F;
-	GPIOC->DDR = 0x3F;
 }
 
 uint8_t count = 0;
@@ -119,29 +101,17 @@ uint8_t count = 0;
 	usb_tx_buffer_pointer = usb.tx_buffer;
 
 	usb_tx();
-
-	nop();
-	nop();
-	nop();
-	nop();
-	nop();
-
-	GPIOC->CR2 = 0x00;
-	GPIOC->CR1 = 0x00;
-	GPIOC->DDR = 0x3F;
 }
 
-@inline void usb_copy_rx_buffer(void)
-{
-	uint8_t index = 0;
 
-	for (index = 0; index < 16; index++)
-		usb.rx_buffer[index] = usb_rx_buffer[index];
+void usb_OUT(void){
+	usb.state = USB_STATE_OUT;
 }
 
 void usb_IN(void){
 	if(usb.setup_address!=0)
 		usb_device_address=usb.setup_address;
+
 
 
 	if (usb.event == USB_EVENT_READY_DATA_IN)
@@ -159,21 +129,37 @@ void usb_IN(void){
 void usb_rx_ok(void)
 {
 	switch (usb_rx_buffer[1])
-	{	
-		case (USB_PID_OUT):
-		{
-			usb.state = USB_STATE_OUT;
-			break;
-		}
-		
+	{			
 		case (USB_PID_DATA0):
 		{
 			if (usb_Transaction == USB_PID_SETUP)
 			{
-				usb_Transaction = USB_STATE_IDLE;
 				usb_send_ack();
-				usb_copy_rx_buffer();
-				usb.event = USB_EVENT_RECEIVE_SETUP_DATA;
+				usb_Transaction = USB_STATE_IDLE;	
+				
+				if (usb_Transfer == USB_TRANSFER_IDLE){
+					//if (USB_REQUEST_TYPE_FROM_DEVICE & usb_rx_buffer[2]){
+						
+						//if (usb_rx_buffer[8] == 0)
+							usb_Transfer = USB_TRANSFER_CONTROL_NODATA;
+					//}
+				}
+					
+					
+					if (usb_rx_buffer[2] == USB_REQUEST_TYPE_TO_DEVICE &&
+							usb_rx_buffer[3] == USB_REQUEST_SET_ADDRESS){
+						usb.setup_address = usb_rx_buffer[4];					
+					}	
+					
+				//prepare data for later transactions
+				usb.rx_buffer[1] = usb_rx_buffer[1];
+				usb.rx_buffer[2] = usb_rx_buffer[2];
+				usb.rx_buffer[3] = usb_rx_buffer[3];
+				usb.rx_buffer[4] = usb_rx_buffer[4];
+				usb.rx_buffer[5] = usb_rx_buffer[5];
+				usb.rx_buffer[6] = usb_rx_buffer[6];
+				usb.rx_buffer[7] = usb_rx_buffer[7];
+				usb.rx_buffer[8] = usb_rx_buffer[8];
 			}
 			else if (usb.state == USB_STATE_OUT)
 			{
@@ -201,6 +187,8 @@ void usb_rx_ok(void)
 		}
 	}
 }
+
+
 
 void USB_CRC16(uint8_t * buffer, uint8_t lenght)
 {
@@ -335,11 +323,10 @@ void usb_send_stall(void)
 	usb.event = USB_EVENT_READY_DATA_IN;
 }
 
-
 void usb_process(void)
 {
 
-	if (usb.event == USB_EVENT_RECEIVE_SETUP_DATA)
+	if (usb_Transfer == USB_TRANSFER_CONTROL_NODATA)
 	{
 		switch (usb.rx_buffer[2])
 		{
@@ -350,7 +337,7 @@ void usb_process(void)
 						{
 							case (TYPE_DEVICE_DESCRIPTOR):
 							{
-								USB_Send_Data(usb_device_descriptor, usb.rx_buffer[8], 1);
+									USB_Send_Data(usb_device_descriptor, usb.rx_buffer[8], 1);
 								break;
 							}
 							case (TYPE_CONFIG_DESCRIPTOR):
@@ -393,7 +380,7 @@ void usb_process(void)
 				{
 					case (USB_REQUEST_SET_ADDRESS):	//0x05
 					{
-						usb.setup_address = usb.rx_buffer[4];
+						//usb.setup_address = usb.rx_buffer[4];
 						USB_Send_Null_DATA1();
 						break;
 					}
@@ -412,5 +399,7 @@ void usb_process(void)
 				break;
 			}
 		}
+		
+		usb_Transfer = USB_TRANSFER_IDLE;
 	}
 }
