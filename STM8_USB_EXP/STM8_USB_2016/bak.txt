@@ -1,0 +1,363 @@
+	xref	_usb_rx_count, _usb_rx_buffer, _usb_rx_ok
+
+	xdef	_usb_rx
+
+CNTRH: equ $525E
+CNTRL: equ $525F
+
+GPIOA_ODR: equ $5000
+IDR: equ $500B
+
+DN: equ 7
+DP: equ 6
+
+switch .bss
+_USB_Rx_Buf: ds.b 15
+_USB_Rx_Count: ds.b 1
+PrevBit: ds.b 1
+Rep: ds.b 1
+
+Buf: ds.b 1
+
+switch .text
+
+
+
+ld a, IDR				;a == IDR
+and a, #$C0			;a &= mask, remove unnecessary bits
+jreq Rx_End			;if SE0 then Rx_End
+exg a, PrevBit	;After this, a contains previous bus state, PrevBit contains the new bus state
+xor a, PrevBit
+sll a
+rlc Rep
+
+
+
+ld a, #$7E
+
+L_Bit_0_Unstuffing:
+bcpl Buf, #7
+jra L_Bit_1
+
+L_Bit_0:
+srl		Buf
+ld	a, #$C0
+and a, IDR
+jreq Rx_End			;if SE0 then Rx_End
+xor		a, Buf
+ld		Buf,a
+;or a, #$81			;Mask 1000 0001
+;jrne L_Bit_0_Unstuffing ;Jump if detected six consecutive 0
+
+;and a, #$7E			;Mask: 01111110
+L_Bit_1:
+
+
+
+mov PrevBit, #$80
+mov Rep, #6
+
+
+L_Bit0:
+ld a, PrevBit
+xor a, IDR
+jrpl Bit0_Diff	;Jump if R7==1, diff
+;same
+scf	;C = 1
+rlc (_USB_Rx_Buf,x)
+dec Rep
+jrne L_Bit1				;Jump if a > 0
+mov Rep, #6
+ld a, $80				;Mask
+nop					
+nop							;Wait for next bit
+and a, IDR
+ld PrevBit, a
+jra L_Bit1
+Bit0_Diff:
+sll (_USB_Rx_Buf,x)	;Shift left, discard b7, set b0=0
+cpl PrevBit
+mov Rep, #6
+nop
+
+
+
+
+
+
+
+
+
+
+
+
+
+ld a, #6							; repetition
+ldw		x, #0						; Starting address of the buffer
+; a - rep
+; x - address of current bit
+
+
+
+nop
+
+
+Bit7_0:									;prevBit==0
+bcpl GPIOA_ODR, #3			;Debug output
+btjt IDR, #DN, Bit7_0_1	;Jump if(curBit==1)
+;Same, prevBit==curBit==0
+scf	;C = 1
+rlc (_USB_Rx_Buf,x)
+incw x
+dec a
+jrne Bit0_0
+;a == 0
+ld a, #6
+nop
+nop					;Wait for next bit
+nop
+nop
+nop
+nop
+jra Bit0_1	;prevBit = 1
+Bit7_0_1:		;Diff, prevBit==0, curBit==1
+ld a, #6
+sll (_USB_Rx_Buf,x)	;Shift left, discard b7, set b0=0
+incw x
+jra Bit0_1	;prevBit = 1
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Bit7_1:									;prevBit==1
+bcpl GPIOA_ODR, #3			;Debug output
+btjf IDR, #DN, Bit7_1_0	;Jump if(curBit==0)
+;Same, prevBit==curBit==1
+scf	;C = 1
+rlc (_USB_Rx_Buf,x)
+incw x
+dec a
+jrne Bit0_1
+;a == 0
+ld a, #6
+nop
+nop					;Wait for next bit
+nop
+nop
+nop
+nop
+jra Bit0_0	;prevBit = 0
+Bit7_1_0:		;Diff, prevBit==1, curBit==0
+ld a, #6
+sll (_USB_Rx_Buf,x)	;Shift left, discard b7, set b0=0
+incw x
+jra Bit0_0	;prevBit = 0
+
+
+nop
+
+
+
+Bit0_0:									;prevBit==0
+bcpl GPIOA_ODR, #3			;Debug output
+btjt IDR, #DN, Bit0_0_1	;Jump if(curBit==1)
+;Same, prevBit==curBit==0
+btjf IDR, #DP, SE0		;If DN==DP==0(SE0), end Rx
+scf	;C = 1
+rlc (_USB_Rx_Buf,x)
+dec a
+jrne Bit1_0
+;a == 0
+ld a, #6
+nop
+nop					;Wait for next bit
+nop
+nop
+nop
+nop
+jra Bit1_1	;prevBit = 1
+Bit0_0_1:		;Diff, prevBit==0, curBit==1
+nop
+ld a, #6
+sll (_USB_Rx_Buf,x)	;Shift left, discard b7, set b0=0
+jra Bit1_1	;prevBit = 1
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+SE0:
+ld a, xl
+ld _USB_Rx_Count, a
+jp Rx_End
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Bit0_1:									;prevBit==1
+bcpl GPIOA_ODR, #3			;Debug output
+btjf IDR, #DN, Bit0_1_0	;Jump if(curBit==0)
+nop
+;Same, prevBit==curBit==1
+scf	;C = 1
+rlc (_USB_Rx_Buf,x)
+dec a
+jrne Bit1_1
+;a == 0
+ld a, #6
+nop
+nop					;Wait for next bit
+nop
+nop
+nop
+nop
+jra Bit1_0	;prevBit = 0
+Bit0_1_0:		;Diff, prevBit==1, curBit==0
+btjf IDR, #DP, SE0		;If DN==DP==0(SE0)
+ld a, #6
+sll (_USB_Rx_Buf,x)	;Shift left, discard b7, set b0=0
+jra Bit1_0	;prevBit = 0
+
+
+nop
+
+
+
+Bit1_0:									;prevBit==0
+bcpl GPIOA_ODR, #3			;Debug output
+btjt IDR, #7, Bit1_0_1	;Jump if(curBit==1)
+;Same, prevBit==curBit==0
+scf	;C = 1
+rlc (_USB_Rx_Buf,x)
+dec a
+jreq Bit1_0_S
+jp Bit2_0
+Bit1_0_1:		;Diff, prevBit==0, curBit==1
+nop
+ld a, #6
+sll (_USB_Rx_Buf,x)	;Shift left, discard b7, set b0=0
+jp Bit2_1	;prevBit = 1
+Bit1_0_S:
+;a == 0
+ld a, #6
+nop
+nop					;Wait for next bit
+nop
+nop
+nop
+nop
+jp Bit2_1	;prevBit = 1
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Bit1_1:									;prevBit==1
+bcpl GPIOA_ODR, #3			;Debug output
+btjf IDR, #7, Bit1_1_0	;Jump if(curBit==0)
+nop
+;Same, prevBit==curBit==1
+scf	;C = 1
+rlc (_USB_Rx_Buf,x)
+dec a
+jreq Bit2_1_S
+jp Bit2_1
+Bit1_1_0:		;Diff, prevBit==1, curBit==0
+nop
+ld a, #6
+sll (_USB_Rx_Buf,x)	;Shift left, discard b7, set b0=0
+jp Bit2_0	;prevBit = 0
+Bit2_1_S:
+;a == 0
+ld a, #6
+nop
+nop					;Wait for next bit
+nop
+nop
+nop
+nop
+jp Bit2_0	;prevBit = 0
+
+
+Rx_End:
+
+
+	nop
+	nop
+	nop
+
+L_End_Rx:
+
+	pop		a
+	pop		a
+	ld		_usb_rx_count,a
+
+	call	_usb_rx_ok
+
+	clr		$500F
+
+	mov		$5255,#$FB 				; §ã§Ò§â§à§ã §æ§Ý§Ñ§Ô§Ñ §á§â§Ö§â§í§Ó§Ñ§ß§Ú§ñ §ä§Ñ§Û§Þ§Ö§â§Ñ
+
+	bres	$5250,#0				; §ã§ä§à§á §ä§Ñ§Û§Þ§Ö§â
+	clr		CNTRH					; §ã§Ò§â§à§ã §ã§é§Ö§ä§ß§à§Ô§à §â§Ö§Ô§Ú§ã§ä§â§Ñ
+	clr		CNTRL				;
+
+	iret
+
+;
+;
+;
+
+_usb_rx:
+	bset GPIOA_ODR, #3
+	ldw		x, #L_Delay_Begin	; §Ñ§Õ§â§Ö§ã §ß§Ñ§é§Ñ§Ý§Ñ §ä§Ñ§Ò§Ý§Ú§è§í §Ù§Ñ§Õ§Ö§â§Ø§Ö§Ü
+	addw	x, CNTRH			; + §ã§Þ§Ö§ë§Ö§ß§Ú§Ö (§Ù§ß§Ñ§é§Ö§ß§Ú§Ö §ä§Ñ§Û§Þ§Ö§â§Ñ)
+	cpw		x, #L_Delay_End		; §á§â§à§Ó§Ö§â§Ü§Ñ §Ó§í§ç§à§Õ§Ñ §Ù§Ñ §Ô§â§Ñ§ß§Ú§è§å §ä§Ñ§Ò§Ý§Ú§è§í (§Ù§Ñ§ë§Ú§ä§Ñ!)
+	jruge	L_Error
+	jp		(x)					; §á§Ö§â§Ö§ç§à§Õ §á§à §ä§Ñ§Ò§Ý§Ú§è§Ö §Ù§Ñ§Õ§Ö§â§Ø§Ö§Ü
+
+L_Error:
+
+	iret ; §Ñ§Ó§â§Ú§Û§ß§í§Û §Ó§í§ç§à§Õ
+
+L_Delay_Begin:
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	;nop
+
+
+L_Delay_End:
+	bcpl GPIOA_ODR, #3
+	ldw		x, #_usb_rx_buffer	; Starting address of the buffer
+	ldw		y, #$500B 					; &(GPIOC->IDR)
+	ld		a, #$0E							; The maximum number of bytes to be received 
+	push	a
+	ld		a, #$80
+	push	a
+
+	jp		Bit0_0

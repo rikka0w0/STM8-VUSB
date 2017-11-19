@@ -1,0 +1,9 @@
+[DEFAULT]
+BASEURL=https://www.obdev.at/articles/implementing-usb-1.1-in-firmware.html
+[{000214A0-0000-0000-C000-000000000046}]
+Prop3=19,11
+[InternetShortcut]
+IDList=
+URL=https://www.obdev.at/articles/implementing-usb-1.1-in-firmware.html
+IconFile=https://www.obdev.at/favicon.png
+IconIndex=1
